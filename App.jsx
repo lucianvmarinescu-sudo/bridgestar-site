@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
   Shield,
@@ -9,6 +9,8 @@ import {
   Mail,
   MapPin,
   CheckCircle2,
+  ChevronLeft,
+  ExternalLink,
 } from "lucide-react";
 
 const BRAND = {
@@ -19,6 +21,28 @@ const BRAND = {
 
 function cx(...xs) {
   return xs.filter(Boolean).join(" ");
+}
+
+/** Hash router:
+ *  - Home: #/ or empty hash
+ *  - Insights page: #/insights
+ */
+function useHashRoute() {
+  const getRoute = () => {
+    const h = (window.location.hash || "").trim();
+    if (h.startsWith("#/insights")) return "insights";
+    return "home";
+  };
+
+  const [route, setRoute] = useState(getRoute);
+
+  useEffect(() => {
+    const onHash = () => setRoute(getRoute());
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
+
+  return route;
 }
 
 function NavLink({ href, children }) {
@@ -97,14 +121,19 @@ function Card({ icon: Icon, title, desc }) {
   );
 }
 
-function InsightRow({ tag, title, desc }) {
+function InsightRow({ tag, title, desc, meta }) {
   return (
     <div className="rounded-2xl bg-white ring-1 ring-slate-200 p-6 hover:shadow-md transition">
       <div className="flex items-center justify-between gap-4">
         <div className="min-w-0">
-          <div className="inline-flex items-center gap-2 rounded-full bg-brand-light px-3 py-1 text-xs font-semibold font-body text-slate-700 ring-1 ring-slate-200">
-            <FileText className="h-4 w-4" />
-            {tag}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-2 rounded-full bg-brand-light px-3 py-1 text-xs font-semibold font-body text-slate-700 ring-1 ring-slate-200">
+              <FileText className="h-4 w-4" />
+              {tag}
+            </span>
+            {meta ? (
+              <span className="font-body text-xs text-slate-500">{meta}</span>
+            ) : null}
           </div>
           <div className="mt-3 font-heading text-lg font-semibold text-slate-900">
             {title}
@@ -123,22 +152,63 @@ function InsightRow({ tag, title, desc }) {
   );
 }
 
-export default function App() {
-  const [form, setForm] = useState({
-    first: "",
-    last: "",
-    email: "",
-    message: "",
-  });
+function TopNav() {
+  return (
+    <header className="sticky top-0 z-50 bg-brand-navy/85 backdrop-blur border-b border-white/10">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <div className="flex h-16 items-center justify-between">
+          <a href="#/" className="flex items-center gap-3">
+            <div className="h-9 w-9 rounded-xl bg-white/10 ring-1 ring-white/15 flex items-center justify-center">
+              <span className="text-white font-semibold font-body">BS</span>
+            </div>
+            <div className="text-white font-semibold tracking-tight font-body">
+              {BRAND.name}
+            </div>
+          </a>
 
-  const mailto = useMemo(() => {
-    const to = BRAND.email;
-    const subject = encodeURIComponent(`${BRAND.name} — Contact Request`);
-    const body = encodeURIComponent(
-      `First name: ${form.first}\nLast name: ${form.last}\nEmail: ${form.email}\n\nMessage:\n${form.message}`
-    );
-    return `mailto:${to}?subject=${subject}&body=${body}`;
-  }, [form]);
+          <nav className="hidden md:flex items-center gap-7">
+            <NavLink href="#/#[solutions]">Solutions</NavLink>
+            <NavLink href="#/#[approach]">Approach</NavLink>
+            <NavLink href="#/insights">Insights</NavLink>
+            <NavLink href="#/#[contact]">Contact</NavLink>
+          </nav>
+
+          <div className="flex items-center gap-3">
+            <a
+              href="#/#[contact]"
+              className="hidden sm:inline-flex items-center gap-2 rounded-full bg-brand-accent text-brand-navy px-5 py-2.5 text-sm font-semibold font-body hover:opacity-95 transition"
+            >
+              Request an intro <ArrowRight className="h-4 w-4" />
+            </a>
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+/**
+ * Small helper so we can keep anchor section scrolling with hash routes.
+ * We use a pattern: #/#[sectionId]
+ */
+function useRouteAnchors() {
+  useEffect(() => {
+    const h = window.location.hash || "";
+    // Example: #/#[contact]
+    const match = h.match(/#\/#\[(.+?)\]/);
+    if (match?.[1]) {
+      const id = match[1];
+      // Run after paint
+      setTimeout(() => {
+        const el = document.getElementById(id);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 50);
+    }
+  }, []);
+}
+
+function HomePage() {
+  useRouteAnchors();
 
   const solutions = useMemo(
     () => [
@@ -188,66 +258,52 @@ export default function App() {
     []
   );
 
-  const insights = useMemo(
+  const previewInsights = useMemo(
     () => [
       {
         tag: "Perspective",
         title: "Why U.S. markets for long-term investors",
         desc: "A clear framework for building globally diversified portfolios with a U.S. core.",
+        meta: "4 min read",
       },
       {
         tag: "Methodology",
         title: "A practical approach to asset allocation",
         desc: "How we think about risk budgeting, rebalancing, and staying invested through volatility.",
+        meta: "6 min read",
       },
       {
         tag: "Investor guide",
         title: "Getting started with cross-border investing",
         desc: "A simple checklist for Romania-based investors and expats investing internationally.",
+        meta: "5 min read",
       },
     ],
     []
   );
 
+  const [form, setForm] = useState({
+    first: "",
+    last: "",
+    email: "",
+    message: "",
+  });
+
+  const mailto = useMemo(() => {
+    const to = BRAND.email;
+    const subject = encodeURIComponent(`${BRAND.name} — Contact Request`);
+    const body = encodeURIComponent(
+      `First name: ${form.first}\nLast name: ${form.last}\nEmail: ${form.email}\n\nMessage:\n${form.message}`
+    );
+    return `mailto:${to}?subject=${subject}&body=${body}`;
+  }, [form]);
+
   return (
-    <div className="min-h-screen bg-brand-light text-slate-900">
-      {/* Top nav */}
-      <header className="sticky top-0 z-50 bg-brand-navy/85 backdrop-blur border-b border-white/10">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <div className="flex h-16 items-center justify-between">
-            <a href="#top" className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-xl bg-white/10 ring-1 ring-white/15 flex items-center justify-center">
-                <span className="text-white font-semibold font-body">BS</span>
-              </div>
-              <div className="text-white font-semibold tracking-tight font-body">
-                {BRAND.name}
-              </div>
-            </a>
-
-            <nav className="hidden md:flex items-center gap-7">
-              <NavLink href="#solutions">Solutions</NavLink>
-              <NavLink href="#approach">Approach</NavLink>
-              <NavLink href="#insights">Insights</NavLink>
-              <NavLink href="#contact">Contact</NavLink>
-            </nav>
-
-            <div className="flex items-center gap-3">
-              <a
-                href="#contact"
-                className="hidden sm:inline-flex items-center gap-2 rounded-full bg-brand-accent text-brand-navy px-5 py-2.5 text-sm font-semibold font-body hover:opacity-95 transition"
-              >
-                Request an intro <ArrowRight className="h-4 w-4" />
-              </a>
-            </div>
-          </div>
-        </div>
-      </header>
-
+    <>
       {/* Hero */}
       <section id="top" className="relative overflow-hidden">
         <div className="absolute inset-0 bg-brand-navy" />
         <div className="absolute inset-0 opacity-[0.25]">
-          {/* subtle “institutional” texture */}
           <svg
             className="h-full w-full"
             viewBox="0 0 1200 600"
@@ -289,11 +345,11 @@ export default function App() {
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
-              <Button href="#contact" variant="primary">
+              <Button href="#/#[contact]" variant="primary">
                 Request an intro <ArrowRight className="h-4 w-4" />
               </Button>
-              <Button href="#approach" variant="ghost">
-                Our approach
+              <Button href="#/insights" variant="ghost">
+                Read insights
               </Button>
             </div>
 
@@ -320,7 +376,7 @@ export default function App() {
         </div>
       </section>
 
-      {/* Stats bar */}
+      {/* Stats */}
       <section className="mx-auto max-w-6xl px-4 sm:px-6 -mt-8 sm:-mt-10">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Stat label="Mandate" value="Public markets" />
@@ -433,31 +489,42 @@ export default function App() {
         </div>
       </section>
 
-      {/* Insights */}
-      <section
-        id="insights"
-        className="mx-auto max-w-6xl px-4 sm:px-6 py-14 sm:py-20"
-      >
-        <SectionHeader
-          kicker="Insights"
-          title="Research-forward content, written for investors"
-          desc="Short, practical reads that explain how we think—so investors can make better decisions with less noise."
-        />
+      {/* Insights preview */}
+      <section className="mx-auto max-w-6xl px-4 sm:px-6 py-14 sm:py-20">
+        <div className="flex items-end justify-between gap-6">
+          <SectionHeader
+            kicker="Insights"
+            title="Research-forward content, written for investors"
+            desc="Short, practical reads that explain how we think—so investors can make better decisions with less noise."
+          />
+          <a
+            href="#/insights"
+            className="hidden sm:inline-flex items-center gap-2 font-body text-sm font-semibold text-brand-navy hover:opacity-80 transition"
+          >
+            View all <ArrowRight className="h-4 w-4" />
+          </a>
+        </div>
 
         <div className="mt-10 grid grid-cols-1 gap-6">
-          {insights.map((x) => (
-            <a key={x.title} href="#contact" className="block">
+          {previewInsights.map((x) => (
+            <a key={x.title} href="#/insights" className="block">
               <InsightRow {...x} />
             </a>
           ))}
         </div>
+
+        <div className="mt-8 sm:hidden">
+          <a
+            href="#/insights"
+            className="inline-flex items-center gap-2 font-body text-sm font-semibold text-brand-navy hover:opacity-80 transition"
+          >
+            View all insights <ArrowRight className="h-4 w-4" />
+          </a>
+        </div>
       </section>
 
       {/* Contact */}
-      <section
-        id="contact"
-        className="bg-white border-t border-slate-200"
-      >
+      <section id="contact" className="bg-white border-t border-slate-200">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 py-14 sm:py-20">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
             <div>
@@ -487,9 +554,7 @@ export default function App() {
                     <Mail className="h-5 w-5 text-slate-900" />
                   </span>
                   <div>
-                    <div className="font-body text-sm font-semibold">
-                      Email
-                    </div>
+                    <div className="font-body text-sm font-semibold">Email</div>
                     <div className="font-body text-sm text-slate-600">
                       {BRAND.email}
                     </div>
@@ -587,65 +652,189 @@ export default function App() {
           </div>
         </div>
       </section>
+    </>
+  );
+}
 
-      {/* Footer */}
-      <footer className="bg-brand-navy text-white">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 py-10">
-          <div className="flex flex-col md:flex-row md:items-start justify-between gap-8">
+function InsightsPage() {
+  // “Simple insights page”: a list of posts with tags + short summaries.
+  // Later we can swap these for real pages, PDFs, or a CMS.
+  const posts = useMemo(
+    () => [
+      {
+        tag: "Perspective",
+        title: "Why U.S. markets for long-term investors",
+        meta: "4 min read",
+        desc:
+          "A clear framework for building globally diversified portfolios with a U.S. core—what matters, what doesn’t, and how to stay disciplined.",
+      },
+      {
+        tag: "Methodology",
+        title: "A practical approach to asset allocation",
+        meta: "6 min read",
+        desc:
+          "How we think about risk budgeting, rebalancing bands, and avoiding behavioral mistakes during volatility.",
+      },
+      {
+        tag: "Investor guide",
+        title: "Cross-border investing checklist (Romania & expats)",
+        meta: "5 min read",
+        desc:
+          "A simple checklist that covers account setup, currency considerations, diversification, and long-term governance.",
+      },
+      {
+        tag: "Risk",
+        title: "What diversification really means",
+        meta: "5 min read",
+        desc:
+          "Diversification across assets is not the same as diversification across drivers. Here’s how we think about the difference.",
+      },
+    ],
+    []
+  );
+
+  return (
+    <div className="mx-auto max-w-6xl px-4 sm:px-6 py-12 sm:py-16">
+      <div className="flex items-center justify-between gap-6">
+        <div>
+          <div className="font-body text-xs font-semibold tracking-widest uppercase text-slate-500">
+            Insights
+          </div>
+          <h1 className="mt-3 font-heading text-3xl sm:text-4xl font-semibold tracking-tight text-slate-900">
+            Commentary and investor education
+          </h1>
+          <p className="mt-3 font-body text-slate-600 leading-relaxed max-w-3xl">
+            Short, practical reads that explain how we think—written to reduce
+            noise and improve decision-making.
+          </p>
+        </div>
+
+        <a
+          href="#/"
+          className="hidden sm:inline-flex items-center gap-2 font-body text-sm font-semibold text-brand-navy hover:opacity-80 transition"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          Back to home
+        </a>
+      </div>
+
+      <div className="mt-10 grid grid-cols-1 gap-6">
+        {posts.map((p) => (
+          <a key={p.title} href="#/#[contact]" className="block">
+            <InsightRow {...p} />
+          </a>
+        ))}
+      </div>
+
+      <div className="mt-10 rounded-2xl bg-white ring-1 ring-slate-200 p-7 sm:p-9">
+        <div className="font-body text-sm font-semibold text-slate-900">
+          Want these delivered as PDFs or a newsletter?
+        </div>
+        <p className="mt-2 font-body text-sm text-slate-600 leading-relaxed">
+          We can publish “BridgeStar Perspectives” as downloadable one-pagers or
+          add a simple email subscription workflow later.
+        </p>
+        <div className="mt-5 flex flex-wrap gap-3">
+          <a
+            href="#/#[contact]"
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-navy text-white px-6 py-2.5 text-sm font-semibold font-body hover:opacity-95 transition"
+          >
+            Contact <ArrowRight className="h-4 w-4" />
+          </a>
+          <a
+            href={window.location.origin + "/"}
+            onClick={(e) => e.preventDefault()}
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-light text-slate-900 px-6 py-2.5 text-sm font-semibold font-body ring-1 ring-slate-200 hover:opacity-90 transition"
+          >
+            Share page <ExternalLink className="h-4 w-4" />
+          </a>
+        </div>
+      </div>
+
+      <div className="mt-8 sm:hidden">
+        <a
+          href="#/"
+          className="inline-flex items-center gap-2 font-body text-sm font-semibold text-brand-navy hover:opacity-80 transition"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          Back to home
+        </a>
+      </div>
+    </div>
+  );
+}
+
+function Footer() {
+  return (
+    <footer className="bg-brand-navy text-white">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 py-10">
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-8">
+          <div>
+            <div className="font-body font-semibold">{BRAND.name}</div>
+            <div className="mt-1 font-body text-xs text-white/70">
+              © {new Date().getFullYear()} {BRAND.name}. All rights reserved.
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
             <div>
-              <div className="font-body font-semibold">{BRAND.name}</div>
-              <div className="mt-1 font-body text-xs text-white/70">
-                © {new Date().getFullYear()} {BRAND.name}. All rights reserved.
+              <div className="font-body text-xs font-semibold tracking-widest uppercase text-white/70">
+                Navigate
+              </div>
+              <div className="mt-3 space-y-2">
+                {[
+                  ["Home", "#/"],
+                  ["Solutions", "#/#[solutions]"],
+                  ["Approach", "#/#[approach]"],
+                  ["Insights", "#/insights"],
+                  ["Contact", "#/#[contact]"],
+                ].map(([label, href]) => (
+                  <a
+                    key={label}
+                    href={href}
+                    className="block font-body text-sm text-white/80 hover:text-white transition"
+                  >
+                    {label}
+                  </a>
+                ))}
               </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
-              <div>
-                <div className="font-body text-xs font-semibold tracking-widest uppercase text-white/70">
-                  Navigate
-                </div>
-                <div className="mt-3 space-y-2">
-                  {[
-                    ["Solutions", "#solutions"],
-                    ["Approach", "#approach"],
-                    ["Insights", "#insights"],
-                    ["Contact", "#contact"],
-                  ].map(([label, href]) => (
-                    <a
-                      key={label}
-                      href={href}
-                      className="block font-body text-sm text-white/80 hover:text-white transition"
-                    >
-                      {label}
-                    </a>
-                  ))}
-                </div>
+            <div>
+              <div className="font-body text-xs font-semibold tracking-widest uppercase text-white/70">
+                Contact
               </div>
+              <div className="mt-3 space-y-2 font-body text-sm text-white/80">
+                <div>{BRAND.email}</div>
+                <div>Bucharest (by appointment)</div>
+              </div>
+            </div>
 
-              <div>
-                <div className="font-body text-xs font-semibold tracking-widest uppercase text-white/70">
-                  Contact
-                </div>
-                <div className="mt-3 space-y-2 font-body text-sm text-white/80">
-                  <div>{BRAND.email}</div>
-                  <div>Bucharest (by appointment)</div>
-                </div>
+            <div className="sm:col-span-1 col-span-2">
+              <div className="font-body text-xs font-semibold tracking-widest uppercase text-white/70">
+                Disclosure
               </div>
-
-              <div className="sm:col-span-1 col-span-2">
-                <div className="font-body text-xs font-semibold tracking-widest uppercase text-white/70">
-                  Disclosure
-                </div>
-                <p className="mt-3 font-body text-xs text-white/70 leading-relaxed max-w-sm">
-                  Information only; not investment advice. Investing involves
-                  risk, including possible loss of principal. Past performance
-                  does not guarantee future results.
-                </p>
-              </div>
+              <p className="mt-3 font-body text-xs text-white/70 leading-relaxed max-w-sm">
+                Information only; not investment advice. Investing involves risk,
+                including possible loss of principal. Past performance does not
+                guarantee future results.
+              </p>
             </div>
           </div>
         </div>
-      </footer>
+      </div>
+    </footer>
+  );
+}
+
+export default function App() {
+  const route = useHashRoute();
+
+  return (
+    <div className="min-h-screen bg-brand-light text-slate-900">
+      <TopNav />
+      {route === "insights" ? <InsightsPage /> : <HomePage />}
+      <Footer />
     </div>
   );
 }
