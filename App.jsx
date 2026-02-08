@@ -10,7 +10,6 @@ import {
   MapPin,
   CheckCircle2,
   ChevronLeft,
-  ExternalLink,
 } from "lucide-react";
 
 const BRAND = {
@@ -19,13 +18,27 @@ const BRAND = {
   email: "info@bridgestar.ro",
 };
 
+const IMAGES = {
+  // Hero: user chose “second image”
+  hero:
+    "https://images.unsplash.com/photo-1444723121867-7a241cacace9?auto=format&fit=crop&w=2400&q=70",
+  // Section image: user chose “first one”
+  section:
+    "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1800&q=70",
+  // Insights: user chose “first one” from insights list
+  insights:
+    "https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&w=1800&q=70",
+};
+
 function cx(...xs) {
   return xs.filter(Boolean).join(" ");
 }
 
-/** Hash router:
- *  - Home: #/ or empty hash
+/**
+ * Hash router:
+ *  - Home: #/ (or empty hash)
  *  - Insights page: #/insights
+ *  - Section anchors from nav: #/#[sectionId]
  */
 function useHashRoute() {
   const getRoute = () => {
@@ -43,6 +56,20 @@ function useHashRoute() {
   }, []);
 
   return route;
+}
+
+function useRouteAnchors() {
+  useEffect(() => {
+    const h = window.location.hash || "";
+    const match = h.match(/#\/#\[(.+?)\]/);
+    if (match?.[1]) {
+      const id = match[1];
+      setTimeout(() => {
+        const el = document.getElementById(id);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 60);
+    }
+  }, []);
 }
 
 function NavLink({ href, children }) {
@@ -70,19 +97,36 @@ function Button({ href, variant = "primary", children }) {
   );
 }
 
-function SectionHeader({ kicker, title, desc }) {
+function SectionHeader({ kicker, title, desc, light = false }) {
   return (
     <div className="max-w-3xl">
       {kicker ? (
-        <div className="font-body text-xs font-semibold tracking-widest text-slate-500 uppercase">
+        <div
+          className={cx(
+            "font-body text-xs font-semibold tracking-widest uppercase",
+            light ? "text-white/70" : "text-slate-500"
+          )}
+        >
           {kicker}
         </div>
       ) : null}
-      <h2 className="mt-3 font-heading text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900">
+      <h2
+        className={cx(
+          "mt-3 font-heading text-2xl sm:text-3xl font-semibold tracking-tight",
+          light ? "text-white" : "text-slate-900"
+        )}
+      >
         {title}
       </h2>
       {desc ? (
-        <p className="mt-3 font-body text-slate-600 leading-relaxed">{desc}</p>
+        <p
+          className={cx(
+            "mt-3 font-body leading-relaxed",
+            light ? "text-white/80" : "text-slate-600"
+          )}
+        >
+          {desc}
+        </p>
       ) : null}
     </div>
   );
@@ -187,26 +231,6 @@ function TopNav() {
   );
 }
 
-/**
- * Small helper so we can keep anchor section scrolling with hash routes.
- * We use a pattern: #/#[sectionId]
- */
-function useRouteAnchors() {
-  useEffect(() => {
-    const h = window.location.hash || "";
-    // Example: #/#[contact]
-    const match = h.match(/#\/#\[(.+?)\]/);
-    if (match?.[1]) {
-      const id = match[1];
-      // Run after paint
-      setTimeout(() => {
-        const el = document.getElementById(id);
-        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 50);
-    }
-  }, []);
-}
-
 function HomePage() {
   useRouteAnchors();
 
@@ -263,18 +287,18 @@ function HomePage() {
       {
         tag: "Perspective",
         title: "Why U.S. markets for long-term investors",
-        desc: "A clear framework for building globally diversified portfolios with a U.S. core.",
+        desc: "A framework for building globally diversified portfolios with a U.S. core—and staying disciplined through cycles.",
         meta: "4 min read",
       },
       {
         tag: "Methodology",
         title: "A practical approach to asset allocation",
-        desc: "How we think about risk budgeting, rebalancing, and staying invested through volatility.",
+        desc: "How we think about risk budgeting, rebalancing, and avoiding behavioral mistakes during volatility.",
         meta: "6 min read",
       },
       {
         tag: "Investor guide",
-        title: "Getting started with cross-border investing",
+        title: "Cross-border investing checklist",
         desc: "A simple checklist for Romania-based investors and expats investing internationally.",
         meta: "5 min read",
       },
@@ -300,33 +324,17 @@ function HomePage() {
 
   return (
     <>
-      {/* Hero */}
-      <section id="top" className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-brand-navy" />
-        <div className="absolute inset-0 opacity-[0.25]">
-          <svg
-            className="h-full w-full"
-            viewBox="0 0 1200 600"
-            preserveAspectRatio="none"
-          >
-            <defs>
-              <linearGradient id="g" x1="0" x2="1">
-                <stop offset="0" stopColor="#FFFFFF" stopOpacity="0.10" />
-                <stop offset="1" stopColor="#FFFFFF" stopOpacity="0.00" />
-              </linearGradient>
-            </defs>
-            <path
-              d="M0,420 C240,360 360,520 600,470 C840,420 960,280 1200,320 L1200,600 L0,600 Z"
-              fill="url(#g)"
-            />
-            <path
-              d="M0,380 C260,340 360,460 600,420 C840,380 960,260 1200,290"
-              fill="none"
-              stroke="#FFFFFF"
-              strokeOpacity="0.08"
-              strokeWidth="2"
-            />
-          </svg>
+      {/* HERO with background image + overlay */}
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0">
+          <img
+            src={IMAGES.hero}
+            alt=""
+            className="h-full w-full object-cover"
+            loading="eager"
+          />
+          <div className="absolute inset-0 bg-brand-navy/75" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/10 to-transparent" />
         </div>
 
         <div className="relative mx-auto max-w-6xl px-4 sm:px-6 py-16 sm:py-20">
@@ -338,7 +346,7 @@ function HomePage() {
             <h1 className="mt-6 font-heading text-4xl sm:text-5xl font-semibold tracking-tight text-white">
               Investing with discipline, clarity, and a long-term horizon.
             </h1>
-            <p className="mt-4 font-body text-lg text-white/80 leading-relaxed">
+            <p className="mt-4 font-body text-lg text-white/85 leading-relaxed">
               BridgeStar Investments provides disciplined exposure to U.S. and
               global public markets for investors who value transparency, risk
               management, and repeatable decision-making.
@@ -361,9 +369,9 @@ function HomePage() {
               ].map((x) => (
                 <div
                   key={x.label}
-                  className="rounded-2xl bg-white/5 ring-1 ring-white/10 px-5 py-4"
+                  className="rounded-2xl bg-white/10 ring-1 ring-white/15 px-5 py-4"
                 >
-                  <div className="font-body text-xs font-semibold tracking-widest uppercase text-white/70">
+                  <div className="font-body text-xs font-semibold tracking-widest uppercase text-white/75">
                     {x.label}
                   </div>
                   <div className="mt-2 font-heading text-xl font-semibold text-white">
@@ -377,7 +385,7 @@ function HomePage() {
       </section>
 
       {/* Stats */}
-      <section className="mx-auto max-w-6xl px-4 sm:px-6 -mt-8 sm:-mt-10">
+      <section className="mx-auto max-w-6xl px-4 sm:px-6 -mt-8 sm:-mt-10 relative z-10">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Stat label="Mandate" value="Public markets" />
           <Stat label="Investor type" value="Affluent / UHNW" />
@@ -385,37 +393,64 @@ function HomePage() {
         </div>
       </section>
 
-      {/* Solutions */}
+      {/* Solutions + image */}
       <section
         id="solutions"
         className="mx-auto max-w-6xl px-4 sm:px-6 py-14 sm:py-20"
       >
-        <SectionHeader
-          kicker="Solutions"
-          title="A focused set of capabilities for serious investors"
-          desc="We build portfolios designed to be resilient across regimes—implemented with a repeatable investment process and transparent reporting."
-        />
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+          <div className="lg:col-span-7">
+            <SectionHeader
+              kicker="Solutions"
+              title="A focused set of capabilities for serious investors"
+              desc="We build portfolios designed to be resilient across regimes—implemented with a repeatable investment process and transparent reporting."
+            />
 
-        <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-6">
-          {solutions.map((s) => (
-            <Card key={s.title} {...s} />
-          ))}
-        </div>
+            <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {solutions.map((s) => (
+                <Card key={s.title} {...s} />
+              ))}
+            </div>
 
-        <div className="mt-10 rounded-2xl bg-white ring-1 ring-slate-200 p-7 sm:p-9">
-          <div className="flex items-start gap-3">
-            <span className="mt-0.5 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-brand-light ring-1 ring-slate-200">
-              <CheckCircle2 className="h-5 w-5 text-slate-900" />
-            </span>
-            <div>
-              <div className="font-body text-sm font-semibold text-slate-900">
-                What you can expect
+            <div className="mt-10 rounded-2xl bg-white ring-1 ring-slate-200 p-7 sm:p-9">
+              <div className="flex items-start gap-3">
+                <span className="mt-0.5 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-brand-light ring-1 ring-slate-200">
+                  <CheckCircle2 className="h-5 w-5 text-slate-900" />
+                </span>
+                <div>
+                  <div className="font-body text-sm font-semibold text-slate-900">
+                    What you can expect
+                  </div>
+                  <p className="mt-2 font-body text-sm text-slate-600 leading-relaxed">
+                    Clear objectives, disciplined portfolio construction, and a
+                    communication style designed to reduce noise and increase
+                    decision quality over time.
+                  </p>
+                </div>
               </div>
-              <p className="mt-2 font-body text-sm text-slate-600 leading-relaxed">
-                Clear objectives, disciplined portfolio construction, and a
-                communication style designed to reduce noise and increase
-                decision quality over time.
-              </p>
+            </div>
+          </div>
+
+          <div className="lg:col-span-5">
+            <div className="rounded-2xl overflow-hidden ring-1 ring-slate-200 bg-white shadow-sm">
+              <img
+                src={IMAGES.section}
+                alt="Institutional research environment"
+                className="h-72 sm:h-80 lg:h-[520px] w-full object-cover"
+                loading="lazy"
+              />
+              <div className="p-6">
+                <div className="font-body text-xs font-semibold tracking-widest uppercase text-slate-500">
+                  Design philosophy
+                </div>
+                <div className="mt-2 font-heading text-lg font-semibold text-slate-900">
+                  Institutional clarity
+                </div>
+                <p className="mt-2 font-body text-sm text-slate-600 leading-relaxed">
+                  We prioritize a process that is explainable, repeatable, and
+                  designed for long-horizon decision-making.
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -512,15 +547,6 @@ function HomePage() {
             </a>
           ))}
         </div>
-
-        <div className="mt-8 sm:hidden">
-          <a
-            href="#/insights"
-            className="inline-flex items-center gap-2 font-body text-sm font-semibold text-brand-navy hover:opacity-80 transition"
-          >
-            View all insights <ArrowRight className="h-4 w-4" />
-          </a>
-        </div>
       </section>
 
       {/* Contact */}
@@ -559,11 +585,6 @@ function HomePage() {
                       {BRAND.email}
                     </div>
                   </div>
-                </div>
-
-                <div className="font-body text-xs text-slate-500">
-                  Tip: once you set up email hosting for {BRAND.domain}, this
-                  address will work end-to-end.
                 </div>
               </div>
             </div>
@@ -639,7 +660,11 @@ function HomePage() {
 
               <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
                 <a
-                  href={mailto}
+                  href={`mailto:${BRAND.email}?subject=${encodeURIComponent(
+                    `${BRAND.name} — Contact Request`
+                  )}&body=${encodeURIComponent(
+                    `First name: ${form.first}\nLast name: ${form.last}\nEmail: ${form.email}\n\nMessage:\n${form.message}`
+                  )}`}
                   className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-navy text-white px-6 py-2.5 text-sm font-semibold font-body hover:opacity-95 transition"
                 >
                   Submit <ArrowRight className="h-4 w-4" />
@@ -657,8 +682,6 @@ function HomePage() {
 }
 
 function InsightsPage() {
-  // “Simple insights page”: a list of posts with tags + short summaries.
-  // Later we can swap these for real pages, PDFs, or a CMS.
   const posts = useMemo(
     () => [
       {
@@ -680,7 +703,7 @@ function InsightsPage() {
         title: "Cross-border investing checklist (Romania & expats)",
         meta: "5 min read",
         desc:
-          "A simple checklist that covers account setup, currency considerations, diversification, and long-term governance.",
+          "A practical checklist covering account setup, currency considerations, diversification, and long-term governance.",
       },
       {
         tag: "Risk",
@@ -694,71 +717,65 @@ function InsightsPage() {
   );
 
   return (
-    <div className="mx-auto max-w-6xl px-4 sm:px-6 py-12 sm:py-16">
-      <div className="flex items-center justify-between gap-6">
-        <div>
-          <div className="font-body text-xs font-semibold tracking-widest uppercase text-slate-500">
-            Insights
+    <div className="bg-brand-light">
+      {/* Insights header image */}
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0">
+          <img
+            src={IMAGES.insights}
+            alt=""
+            className="h-full w-full object-cover"
+            loading="lazy"
+          />
+          <div className="absolute inset-0 bg-brand-navy/70" />
+        </div>
+
+        <div className="relative mx-auto max-w-6xl px-4 sm:px-6 py-12 sm:py-14">
+          <SectionHeader
+            kicker="Insights"
+            title="Commentary and investor education"
+            desc="Short, practical reads written to reduce noise and improve decision-making."
+            light
+          />
+
+          <div className="mt-6">
+            <a
+              href="#/"
+              className="inline-flex items-center gap-2 font-body text-sm font-semibold text-white/90 hover:text-white transition"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Back to home
+            </a>
           </div>
-          <h1 className="mt-3 font-heading text-3xl sm:text-4xl font-semibold tracking-tight text-slate-900">
-            Commentary and investor education
-          </h1>
-          <p className="mt-3 font-body text-slate-600 leading-relaxed max-w-3xl">
-            Short, practical reads that explain how we think—written to reduce
-            noise and improve decision-making.
+        </div>
+      </section>
+
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 py-12 sm:py-16">
+        <div className="grid grid-cols-1 gap-6">
+          {posts.map((p) => (
+            <a key={p.title} href="#/#[contact]" className="block">
+              <InsightRow {...p} />
+            </a>
+          ))}
+        </div>
+
+        <div className="mt-10 rounded-2xl bg-white ring-1 ring-slate-200 p-7 sm:p-9">
+          <div className="font-body text-sm font-semibold text-slate-900">
+            Want these as PDFs?
+          </div>
+          <p className="mt-2 font-body text-sm text-slate-600 leading-relaxed">
+            We can publish “BridgeStar Perspectives” as downloadable one-pagers
+            and add a simple email subscription workflow later.
           </p>
+          <div className="mt-5">
+            <a
+              href="#/#[contact]"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-navy text-white px-6 py-2.5 text-sm font-semibold font-body hover:opacity-95 transition"
+            >
+              Contact <ArrowRight className="h-4 w-4" />
+            </a>
+          </div>
         </div>
-
-        <a
-          href="#/"
-          className="hidden sm:inline-flex items-center gap-2 font-body text-sm font-semibold text-brand-navy hover:opacity-80 transition"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          Back to home
-        </a>
-      </div>
-
-      <div className="mt-10 grid grid-cols-1 gap-6">
-        {posts.map((p) => (
-          <a key={p.title} href="#/#[contact]" className="block">
-            <InsightRow {...p} />
-          </a>
-        ))}
-      </div>
-
-      <div className="mt-10 rounded-2xl bg-white ring-1 ring-slate-200 p-7 sm:p-9">
-        <div className="font-body text-sm font-semibold text-slate-900">
-          Want these delivered as PDFs or a newsletter?
-        </div>
-        <p className="mt-2 font-body text-sm text-slate-600 leading-relaxed">
-          We can publish “BridgeStar Perspectives” as downloadable one-pagers or
-          add a simple email subscription workflow later.
-        </p>
-        <div className="mt-5 flex flex-wrap gap-3">
-          <a
-            href="#/#[contact]"
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-navy text-white px-6 py-2.5 text-sm font-semibold font-body hover:opacity-95 transition"
-          >
-            Contact <ArrowRight className="h-4 w-4" />
-          </a>
-          <a
-            href={window.location.origin + "/"}
-            onClick={(e) => e.preventDefault()}
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-light text-slate-900 px-6 py-2.5 text-sm font-semibold font-body ring-1 ring-slate-200 hover:opacity-90 transition"
-          >
-            Share page <ExternalLink className="h-4 w-4" />
-          </a>
-        </div>
-      </div>
-
-      <div className="mt-8 sm:hidden">
-        <a
-          href="#/"
-          className="inline-flex items-center gap-2 font-body text-sm font-semibold text-brand-navy hover:opacity-80 transition"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          Back to home
-        </a>
       </div>
     </div>
   );
